@@ -160,7 +160,7 @@ public class ManifestMergerActionTest {
             ImmutableMap.of("applicationId", "com.google.android.apps.testapp"),
             "", /* custom_package */
             mergedManifest,
-            /* mergeManifestPermissions */false);
+            /* mergeManifestPermissions */false, null);
     ManifestMergerAction.main(args.toArray(new String[0]));
 
     assertThat(
@@ -206,6 +206,7 @@ public class ManifestMergerActionTest {
     Files.createDirectories(working.resolve("output"));
     final Path mergedManifest = working.resolve("output/mergedManifest.xml");
 
+    File logFile = File.createTempFile("logs", "txt");
     List<String> args =
         generateArgs(
             mergerManifest,
@@ -214,11 +215,12 @@ public class ManifestMergerActionTest {
             ImmutableMap.of("applicationId", "com.google.android.apps.testapp"),
             "", /* custom_package */
             mergedManifest,
-            /* mergeManifestPermissions */true);
+            /* mergeManifestPermissions */true, logFile.toPath());
     ManifestMergerAction.main(args.toArray(new String[0]));
 
     System.err.println("mergedManifest: " + Files.readAllLines(mergedManifest, UTF_8));
     System.err.println("expectedManifest: " + Files.readAllLines(expectedManifest, UTF_8));
+    System.err.println("logFile: " + Files.readAllLines(logFile.toPath(), UTF_8));
     assertThat(
         Joiner.on(" ")
             .join(Files.readAllLines(mergedManifest, UTF_8))
@@ -256,7 +258,7 @@ public class ManifestMergerActionTest {
 
     // libFoo manifest merging
     List<String> args = generateArgs(libFooManifest, ImmutableMap.<Path, String>of(), true,
-        ImmutableMap.<String, String>of(), "", libFooOutput, false);
+        ImmutableMap.<String, String>of(), "", libFooOutput, false, null);
     ManifestMergerAction.main(args.toArray(new String[0]));
     assertThat(Joiner.on(" ")
         .join(Files.readAllLines(libFooOutput, UTF_8))
@@ -269,7 +271,7 @@ public class ManifestMergerActionTest {
 
     // libBar manifest merging
     args = generateArgs(libBarManifest, ImmutableMap.<Path, String>of(), true,
-        ImmutableMap.<String, String>of(), "com.google.libbar", libBarOutput, false);
+        ImmutableMap.<String, String>of(), "com.google.libbar", libBarOutput, false, null);
     ManifestMergerAction.main(args.toArray(new String[0]));
     assertThat(Joiner.on(" ")
         .join(Files.readAllLines(libBarOutput, UTF_8))
@@ -293,7 +295,7 @@ public class ManifestMergerActionTest {
                 "foo", "this \\\\: is \"a, \"bad string"),
             /* customPackage= */ "",
             binaryOutput,
-            /* mergeManifestPermissions */false);
+            /* mergeManifestPermissions */false, null);
     ManifestMergerAction.main(args.toArray(new String[0]));
     assertThat(Joiner.on(" ")
         .join(Files.readAllLines(binaryOutput, UTF_8))
@@ -314,13 +316,17 @@ public class ManifestMergerActionTest {
       Map<String, String> manifestValues,
       String customPackage,
       Path manifestOutput,
-      boolean mergeManifestPermissions) {
+      boolean mergeManifestPermissions,
+      Path log) {
     ImmutableList.Builder<String> builder = ImmutableList.builder();
     builder.add(
         "--manifest", manifest.toString(),
         "--mergeeManifests", mapToDictionaryString(mergeeManifests));
     if (mergeManifestPermissions) {
       builder.add("--mergeManifestPermissions");
+    }
+    if (log != null) {
+      builder.add("--log", log.toString());
     }
 
     builder.add(
