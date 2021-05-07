@@ -217,8 +217,6 @@ public class ManifestMergerActionTest {
             /* mergeManifestPermissions */true);
     ManifestMergerAction.main(args.toArray(new String[0]));
 
-    System.err.println("mergedManifest: " + Files.readAllLines(mergedManifest, UTF_8));
-    System.err.println("expectedManifest: " + Files.readAllLines(expectedManifest, UTF_8));
     assertThat(
         Joiner.on(" ")
             .join(Files.readAllLines(mergedManifest, UTF_8))
