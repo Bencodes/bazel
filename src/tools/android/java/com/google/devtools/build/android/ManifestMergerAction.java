@@ -204,6 +204,8 @@ public class ManifestMergerAction {
     optionsParser.parseAndExitUponError(args);
     options = optionsParser.getOptions(Options.class);
 
+    System.err.println("DEBUG: options.mergeManifestPermissions=" + options.mergeManifestPermissions);
+
     try {
       Path mergedManifest;
       AndroidManifestProcessor manifestProcessor = AndroidManifestProcessor.with(stdLogger);
