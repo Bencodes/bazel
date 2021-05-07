@@ -196,7 +196,6 @@ public class ManifestMergerAction {
   }
 
   private static void removePermisisonsFromDocument(Document doc) {
-    System.err.println("DEBUG: removePermisisonsFromDocument");
     for (String tag : PERMISSION_TAGS) {
       NodeList permissions = doc.getElementsByTagName(tag);
       if (permissions != null) {
