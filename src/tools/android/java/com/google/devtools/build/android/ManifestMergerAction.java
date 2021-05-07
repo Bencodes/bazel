@@ -172,30 +172,11 @@ public class ManifestMergerAction {
 
   private static Options options;
 
-  private static Path processMergeeManifest(
-      Path manifest,
-      Path outputDir,
-      boolean mergeManifestPermissions) throws IOException,
-      ParserConfigurationException, TransformerConfigurationException,
-      TransformerException, TransformerFactoryConfigurationError, SAXException {
-
+  private static Path removePermissions(Path manifest, Path outputDir)
+      throws IOException, ParserConfigurationException, TransformerConfigurationException,
+          TransformerException, TransformerFactoryConfigurationError, SAXException {
     DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
     Document doc = docBuilder.parse(manifest.toFile());
-
-    if (!mergeManifestPermissions) {
-      removePermisisonsFromDocument(doc);
-    }
-
-    // Write resulting manifest to the output directory, maintaining full path to prevent collisions
-    Path output = outputDir.resolve(manifest.toString().replaceFirst("^/", ""));
-    Files.createDirectories(output.getParent());
-    TransformerFactory.newInstance()
-        .newTransformer()
-        .transform(new DOMSource(doc), new StreamResult(output.toFile()));
-    return output;
-  }
-
-  private static void removePermisisonsFromDocument(Document doc) {
     for (String tag : PERMISSION_TAGS) {
       NodeList permissions = doc.getElementsByTagName(tag);
       if (permissions != null) {
@@ -205,6 +186,13 @@ public class ManifestMergerAction {
         }
       }
     }
+    // Write resulting manifest to the output directory, maintaining full path to prevent collisions
+    Path output = outputDir.resolve(manifest.toString().replaceFirst("^/", ""));
+    Files.createDirectories(output.getParent());
+    TransformerFactory.newInstance()
+        .newTransformer()
+        .transform(new DOMSource(doc), new StreamResult(output.toFile()));
+    return output;
   }
 
   public static void main(String[] args) throws Exception {
@@ -226,9 +214,13 @@ public class ManifestMergerAction {
       tmp.toFile().deleteOnExit();
       ImmutableMap.Builder<Path, String> mergeeManifests = ImmutableMap.builder();
       for (Map.Entry<Path, String> mergeeManifest : options.mergeeManifests.entrySet()) {
-        Path output = processMergeeManifest(mergeeManifest.getKey(),
-                tmp, options.mergeManifestPermissions);
-        mergeeManifests.put(output, mergeeManifest.getValue());
+        if (!options.mergeManifestPermissions) {
+          // Remove uses-permission tags from mergees before the merge.
+          mergeeManifests.put(
+                  removePermissions(mergeeManifest.getKey(), tmp), mergeeManifest.getValue());
+        } else {
+          mergeeManifests.put(mergeeManifest);
+        }
       }
 
       Path manifest = options.manifest;
